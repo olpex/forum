@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block title %}Керування коментарями - Панель адміністратора - Форум{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h4 class="mb-0">Керування коментарями</h4>
+    </div>
+    <div class="card-body">
+        <!-- Search and filters -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <form method="get" class="d-flex">
+                    <input type="text" name="q" class="form-control me-2" placeholder="Пошук коментарів..." value="{{ request.GET.q }}">
+                    <button type="submit" class="btn btn-outline-primary">Пошук</button>
+                </form>
+            </div>
+            <div class="col-md-4">
+                <form method="get" class="d-flex">
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">Всі статуси</option>
+                        <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Активні</option>
+                        <option value="frozen" {% if request.GET.status == 'frozen' %}selected{% endif %}>Заморожені</option>
+                    </select>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Comments table -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Зміст</th>
+                        <th>Автор</th>
+                        <th>Пост</th>
+                        <th>Статус</th>
+                        <th>Створено</th>
+                        <th>Дії</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for comment in comments %}
+                        <tr>
+                            <td>{{ comment.id }}</td>
+                            <td>
+                                <a href="{% url 'core:post_detail' comment.post.pk %}#comment-{{ comment.pk }}">
+                                    {{ comment.content|striptags|truncatechars:50 }}
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{% url 'users:admin_user_detail' comment.author.pk %}">
+                                    {{ comment.author.first_name }} {{ comment.author.last_name }}
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{% url 'core:post_detail' comment.post.pk %}">
+                                    {{ comment.post.title|truncatechars:30 }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if comment.is_frozen %}
+                                    <span class="badge status-badge status-frozen">Заморожено</span>
+                                {% else %}
+                                    <span class="badge bg-success">Активний</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ comment.created_at|date:"d.m.Y H:i" }}</td>
+                            <td>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ comment.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Дії
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ comment.id }}">
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'core:post_detail' comment.post.pk %}#comment-{{ comment.pk }}">
+                                                <i class="fas fa-eye me-2"></i> Переглянути
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'core:comment_edit' comment.pk %}">
+                                                <i class="fas fa-edit me-2"></i> Редагувати
+                                            </a>
+                                        </li>
+                                        
+                                        {% if comment.is_frozen %}
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'core:comment_unfreeze' comment.pk %}">
+                                                    <i class="fas fa-sun me-2"></i> Розморозити
+                                                </a>
+                                            </li>
+                                        {% else %}
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'core:comment_freeze' comment.pk %}">
+                                                    <i class="fas fa-snowflake me-2"></i> Заморозити
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                        
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-danger confirm-action" href="{% url 'core:comment_delete' comment.pk %}" 
+                                               data-confirm-message="Ви впевнені, що хочете видалити цей коментар? Ця дія не може бути скасована.">
+                                                <i class="fas fa-trash-alt me-2"></i> Видалити
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">Коментарів не знайдено.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{{ num }}</a></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

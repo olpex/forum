@@ -1,0 +1,441 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ post.title }} - Форум{% endblock %}
+
+{% block content %}
+    <!-- Breadcrumbs -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Головна</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'core:section_detail' post.section.pk %}">{{ post.section.title }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ post.title }}</li>
+        </ol>
+    </nav>
+
+    <!-- Post -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                {{ post.title }}
+                {% if post.is_closed %}
+                    <span class="badge status-badge status-closed">Закрито</span>
+                {% endif %}
+                
+                {% if post.is_frozen %}
+                    <span class="badge status-badge status-frozen">Заморожено</span>
+                {% endif %}
+                
+                {% if post.post_type %}
+                    <span class="badge post-type-badge post-type-{{ post.post_type.type }}">
+                        {{ post.post_type.get_type_display }}
+                    </span>
+                {% endif %}
+            </h4>
+            
+            <!-- Post actions dropdown -->
+            {% if user.is_authenticated and user == post.author or user.is_superadmin or user.is_admin %}
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="postActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-ellipsis-v"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="postActionsDropdown">
+                        {% if user == post.author or user.is_superadmin or user.is_admin %}
+                            <li><a class="dropdown-item" href="{% url 'core:post_edit' post.pk %}">
+                                <i class="fas fa-edit me-2"></i> Редагувати
+                            </a></li>
+                        {% endif %}
+                        
+                        {% if user.is_superadmin or user.is_admin %}
+                            {% if post.is_frozen %}
+                                <li><a class="dropdown-item" href="{% url 'core:post_unfreeze' post.pk %}">
+                                    <i class="fas fa-snowflake me-2"></i> Розморозити
+                                </a></li>
+                            {% else %}
+                                <li><a class="dropdown-item" href="{% url 'core:post_freeze' post.pk %}">
+                                    <i class="fas fa-snowflake me-2"></i> Заморозити
+                                </a></li>
+                            {% endif %}
+                            
+                            {% if post.is_closed %}
+                                <li><a class="dropdown-item" href="{% url 'core:post_reopen' post.pk %}">
+                                    <i class="fas fa-lock-open me-2"></i> Відкрити
+                                </a></li>
+                            {% else %}
+                                <li><a class="dropdown-item" href="{% url 'core:post_close' post.pk %}">
+                                    <i class="fas fa-lock me-2"></i> Закрити
+                                </a></li>
+                            {% endif %}
+                        {% endif %}
+                        
+                        {% if user == post.author or user.is_superadmin %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item confirm-action" href="{% url 'core:post_delete' post.pk %}" 
+                                   data-confirm-message="Ви впевнені, що хочете видалити цей пост? Ця дія не може бути скасована.">
+                                <i class="fas fa-trash-alt me-2 text-danger"></i> <span class="text-danger">Видалити</span>
+                            </a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="card-body">
+            <div class="d-flex">
+                <!-- Author info -->
+                <div class="me-4 text-center" style="min-width: 120px;">
+                    <div class="mb-2">
+                        {% if post.author.profile_image %}
+                            <img src="{{ post.author.profile_image.url }}" alt="{{ post.author.first_name }}" class="rounded-circle" width="80" height="80">
+                        {% else %}
+                            <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 80px; height: 80px;">
+                                <span style="font-size: 2rem;">{{ post.author.first_name|first }}{{ post.author.last_name|first }}</span>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <a href="{% url 'users:user_profile' post.author.username %}" class="text-decoration-none">
+                            {{ post.author.first_name }} {{ post.author.last_name }}
+                        </a>
+                    </div>
+                    <div class="small text-muted">
+                        {% if post.author.is_superadmin %}
+                            <span class="badge bg-danger">Суперадміністратор</span>
+                        {% elif post.author.is_admin %}
+                            <span class="badge bg-warning text-dark">Адміністратор</span>
+                        {% else %}
+                            <span class="badge bg-info text-dark">Користувач</span>
+                        {% endif %}
+                    </div>
+                    <div class="small text-muted mt-2">
+                        Постів: {{ post.author.post_count }}
+                    </div>
+                    
+                    <!-- Voting buttons -->
+                    <div class="vote-buttons mt-3">
+                        <button class="vote-btn {% if user in post.upvotes.all %}active{% endif %}" 
+                                id="post-{{ post.pk }}-upvote" 
+                                data-post-id="{{ post.pk }}">
+                            <i class="fas fa-arrow-up"></i>
+                        </button>
+                        <span class="vote-count" id="post-{{ post.pk }}-score">{{ post.vote_score }}</span>
+                        <button class="vote-btn {% if user in post.downvotes.all %}active{% endif %}" 
+                                id="post-{{ post.pk }}-downvote" 
+                                data-post-id="{{ post.pk }}">
+                            <i class="fas fa-arrow-down"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Post content -->
+                <div class="flex-grow-1">
+                    <div class="post-meta mb-3">
+                        <span class="me-3">
+                            <i class="fas fa-calendar me-1"></i> {{ post.created_at|date:"d.m.Y H:i" }}
+                        </span>
+                        {% if post.updated_at and post.updated_at != post.created_at %}
+                            <span class="me-3">
+                                <i class="fas fa-edit me-1"></i> Оновлено: {{ post.updated_at|date:"d.m.Y H:i" }}
+                            </span>
+                        {% endif %}
+                        <span>
+                            <i class="fas fa-eye me-1"></i> {{ post.view_count }} переглядів
+                        </span>
+                    </div>
+                    
+                    <div class="post-content mb-3">
+                        {{ post.content|safe }}
+                    </div>
+                    
+                    {% if post.tags.exists %}
+                        <div class="mt-3">
+                            {% for tag in post.tags.all %}
+                                <a href="{% url 'core:tag_posts' tag.name %}" class="tag-badge">
+                                    <i class="fas fa-tag me-1"></i> {{ tag.name }}
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Comments -->
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Коментарі ({{ comments.count }})</h5>
+            {% if user.is_authenticated and not post.is_closed and not post.is_frozen %}
+                <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#commentForm">
+                    Додати коментар
+                </button>
+            {% endif %}
+        </div>
+        
+        <div class="card-body">
+            <!-- New comment form -->
+            {% if user.is_authenticated and not post.is_closed and not post.is_frozen %}
+                <div class="collapse mb-4" id="commentForm">
+                    <div class="card card-body bg-light">
+                        <form method="post" action="{% url 'core:comment_create' post.pk %}">
+                            {% csrf_token %}
+                            <div class="form-group mb-3">
+                                {{ comment_form.content }}
+                            </div>
+                            <button type="submit" class="btn btn-primary">Відправити</button>
+                        </form>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Comments list -->
+            {% if comments %}
+                <div class="comments-container">
+                    {% for comment in comments %}
+                        <div class="comment mb-4" id="comment-{{ comment.pk }}">
+                            <div class="d-flex">
+                                <!-- Comment author info -->
+                                <div class="me-3 text-center" style="min-width: 80px;">
+                                    <div class="mb-2">
+                                        {% if comment.author.profile_image %}
+                                            <img src="{{ comment.author.profile_image.url }}" alt="{{ comment.author.first_name }}" class="rounded-circle" width="50" height="50">
+                                        {% else %}
+                                            <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                                <span>{{ comment.author.first_name|first }}{{ comment.author.last_name|first }}</span>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="small">
+                                        <a href="{% url 'users:user_profile' comment.author.username %}" class="text-decoration-none">
+                                            {{ comment.author.first_name }} {{ comment.author.last_name }}
+                                        </a>
+                                    </div>
+                                    
+                                    <!-- Comment voting buttons -->
+                                    <div class="vote-buttons mt-2">
+                                        <button class="vote-btn {% if user in comment.upvotes.all %}active{% endif %}" 
+                                                id="comment-{{ comment.pk }}-upvote" 
+                                                data-comment-id="{{ comment.pk }}">
+                                            <i class="fas fa-arrow-up"></i>
+                                        </button>
+                                        <span class="vote-count" id="comment-{{ comment.pk }}-score">{{ comment.vote_score }}</span>
+                                        <button class="vote-btn {% if user in comment.downvotes.all %}active{% endif %}" 
+                                                id="comment-{{ comment.pk }}-downvote" 
+                                                data-comment-id="{{ comment.pk }}">
+                                            <i class="fas fa-arrow-down"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Comment content -->
+                                <div class="flex-grow-1">
+                                    <div class="comment-meta mb-2">
+                                        <span class="me-3">
+                                            <i class="fas fa-calendar me-1"></i> {{ comment.created_at|date:"d.m.Y H:i" }}
+                                        </span>
+                                        {% if comment.updated_at and comment.updated_at != comment.created_at %}
+                                            <span>
+                                                <i class="fas fa-edit me-1"></i> Оновлено: {{ comment.updated_at|date:"d.m.Y H:i" }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <div class="comment-content mb-2">
+                                        {{ comment.content|safe }}
+                                    </div>
+                                    
+                                    <!-- Comment actions -->
+                                    <div class="comment-actions">
+                                        {% if user.is_authenticated and not post.is_closed and not post.is_frozen %}
+                                            <button class="btn btn-sm btn-link p-0 reply-button" data-comment-id="{{ comment.pk }}">
+                                                <i class="fas fa-reply me-1"></i> Відповісти
+                                            </button>
+                                        {% endif %}
+                                        
+                                        {% if user == comment.author or user.is_superadmin or user.is_admin %}
+                                            <a href="{% url 'core:comment_edit' comment.pk %}" class="btn btn-sm btn-link p-0 ms-2">
+                                                <i class="fas fa-edit me-1"></i> Редагувати
+                                            </a>
+                                            
+                                            <a href="{% url 'core:comment_delete' comment.pk %}" class="btn btn-sm btn-link p-0 ms-2 text-danger confirm-action" 
+                                               data-confirm-message="Ви впевнені, що хочете видалити цей коментар?">
+                                                <i class="fas fa-trash-alt me-1"></i> Видалити
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Reply form -->
+                                    {% if user.is_authenticated and not post.is_closed and not post.is_frozen %}
+                                        <div class="reply-form d-none mt-3" id="reply-form-{{ comment.pk }}">
+                                            <form method="post" action="{% url 'core:comment_reply' comment.pk %}">
+                                                {% csrf_token %}
+                                                <div class="form-group mb-2">
+                                                    <textarea name="content" class="form-control" rows="3" required></textarea>
+                                                </div>
+                                                <button type="submit" class="btn btn-sm btn-primary">Відповісти</button>
+                                            </form>
+                                        </div>
+                                    {% endif %}
+                                    
+                                    <!-- Replies -->
+                                    {% if comment.replies.exists %}
+                                        <div class="comment-replies mt-3">
+                                            {% for reply in comment.replies.all %}
+                                                <div class="comment mb-3" id="comment-{{ reply.pk }}">
+                                                    <div class="d-flex">
+                                                        <!-- Reply author info -->
+                                                        <div class="me-3 text-center" style="min-width: 60px;">
+                                                            <div class="mb-1">
+                                                                {% if reply.author.profile_image %}
+                                                                    <img src="{{ reply.author.profile_image.url }}" alt="{{ reply.author.first_name }}" class="rounded-circle" width="40" height="40">
+                                                                {% else %}
+                                                                    <div class="bg-secondary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                                                                        <span style="font-size: 0.8rem;">{{ reply.author.first_name|first }}{{ reply.author.last_name|first }}</span>
+                                                                    </div>
+                                                                {% endif %}
+                                                            </div>
+                                                            <div class="small">
+                                                                <a href="{% url 'users:user_profile' reply.author.username %}" class="text-decoration-none">
+                                                                    {{ reply.author.first_name }} {{ reply.author.last_name }}
+                                                                </a>
+                                                            </div>
+                                                            
+                                                            <!-- Reply voting buttons -->
+                                                            <div class="vote-buttons mt-1">
+                                                                <button class="vote-btn {% if user in reply.upvotes.all %}active{% endif %}" 
+                                                                        id="comment-{{ reply.pk }}-upvote" 
+                                                                        data-comment-id="{{ reply.pk }}">
+                                                                    <i class="fas fa-arrow-up"></i>
+                                                                </button>
+                                                                <span class="vote-count" id="comment-{{ reply.pk }}-score">{{ reply.vote_score }}</span>
+                                                                <button class="vote-btn {% if user in reply.downvotes.all %}active{% endif %}" 
+                                                                        id="comment-{{ reply.pk }}-downvote" 
+                                                                        data-comment-id="{{ reply.pk }}">
+                                                                    <i class="fas fa-arrow-down"></i>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <!-- Reply content -->
+                                                        <div class="flex-grow-1">
+                                                            <div class="comment-meta mb-1 small">
+                                                                <span class="me-2">
+                                                                    <i class="fas fa-calendar me-1"></i> {{ reply.created_at|date:"d.m.Y H:i" }}
+                                                                </span>
+                                                                {% if reply.updated_at and reply.updated_at != reply.created_at %}
+                                                                    <span>
+                                                                        <i class="fas fa-edit me-1"></i> Оновлено: {{ reply.updated_at|date:"d.m.Y H:i" }}
+                                                                    </span>
+                                                                {% endif %}
+                                                            </div>
+                                                            
+                                                            <div class="comment-content mb-1">
+                                                                {{ reply.content|safe }}
+                                                            </div>
+                                                            
+                                                            <!-- Reply actions -->
+                                                            <div class="comment-actions small">
+                                                                {% if user == reply.author or user.is_superadmin or user.is_admin %}
+                                                                    <a href="{% url 'core:comment_edit' reply.pk %}" class="btn btn-sm btn-link p-0">
+                                                                        <i class="fas fa-edit me-1"></i> Редагувати
+                                                                    </a>
+                                                                    
+                                                                    <a href="{% url 'core:comment_delete' reply.pk %}" class="btn btn-sm btn-link p-0 ms-2 text-danger confirm-action" 
+                                                                       data-confirm-message="Ви впевнені, що хочете видалити цей коментар?">
+                                                                        <i class="fas fa-trash-alt me-1"></i> Видалити
+                                                                    </a>
+                                                                {% endif %}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                
+                <!-- Pagination -->
+                {% if is_paginated %}
+                    <nav aria-label="Page navigation" class="mt-4">
+                        <ul class="pagination justify-content-center">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page=1" aria-label="First">
+                                        <span aria-hidden="true">&laquo;&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <li class="page-item active"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Last">
+                                        <span aria-hidden="true">&raquo;&raquo;</span>
+                                    </a>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                {% endif %}
+            {% else %}
+                <p class="text-center">Немає коментарів. Будьте першим, хто прокоментує цей пост!</p>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}
+
+{% block sidebar %}
+    {{ block.super }}
+    
+    <!-- Related Posts -->
+    {% if related_posts %}
+        <div class="card mb-4">
+            <div class="card-header">Схожі пости</div>
+            <div class="card-body">
+                <ul class="list-unstyled">
+                    {% for related_post in related_posts %}
+                        <li class="mb-2">
+                            <a href="{% url 'core:post_detail' related_post.pk %}">{{ related_post.title }}</a>
+                            <small class="text-muted d-block">{{ related_post.created_at|date:"d.m.Y" }}</small>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}
+
+{% block extra_js %}
+    <script>
+        $(document).ready(function() {
+            // Highlight the comment if it's in the URL
+            if (window.location.hash) {
+                const commentId = window.location.hash;
+                $(commentId).addClass('bg-light');
+                setTimeout(function() {
+                    $(commentId).removeClass('bg-light');
+                }, 3000);
+            }
+        });
+    </script>
+{% endblock %}

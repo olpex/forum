@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block title %}Керування постами - Панель адміністратора - Форум{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Керування постами</h4>
+        <a href="{% url 'core:post_create' %}" class="btn btn-primary">
+            <i class="fas fa-file-medical me-2"></i> Створити пост
+        </a>
+    </div>
+    <div class="card-body">
+        <!-- Search and filters -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <form method="get" class="d-flex">
+                    <input type="text" name="q" class="form-control me-2" placeholder="Пошук постів..." value="{{ request.GET.q }}">
+                    <button type="submit" class="btn btn-outline-primary">Пошук</button>
+                </form>
+            </div>
+            <div class="col-md-4">
+                <form method="get" class="d-flex">
+                    <select name="section" class="form-select me-2" onchange="this.form.submit()">
+                        <option value="">Всі розділи</option>
+                        {% for section in sections %}
+                            <option value="{{ section.id }}" {% if request.GET.section == section.id|stringformat:"i" %}selected{% endif %}>
+                                {{ section.title }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">Всі статуси</option>
+                        <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Активні</option>
+                        <option value="closed" {% if request.GET.status == 'closed' %}selected{% endif %}>Закриті</option>
+                        <option value="frozen" {% if request.GET.status == 'frozen' %}selected{% endif %}>Заморожені</option>
+                    </select>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Posts table -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Заголовок</th>
+                        <th>Автор</th>
+                        <th>Розділ</th>
+                        <th>Статус</th>
+                        <th>Створено</th>
+                        <th>Коментарі</th>
+                        <th>Дії</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for post in posts %}
+                        <tr>
+                            <td>{{ post.id }}</td>
+                            <td>
+                                <a href="{% url 'core:post_detail' post.pk %}">
+                                    {{ post.title|truncatechars:50 }}
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{% url 'users:admin_user_detail' post.author.pk %}">
+                                    {{ post.author.first_name }} {{ post.author.last_name }}
+                                </a>
+                            </td>
+                            <td>
+                                <a href="{% url 'core:section_detail' post.section.pk %}">
+                                    {{ post.section.title }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if post.is_closed %}
+                                    <span class="badge status-badge status-closed">Закрито</span>
+                                {% elif post.is_frozen %}
+                                    <span class="badge status-badge status-frozen">Заморожено</span>
+                                {% else %}
+                                    <span class="badge bg-success">Активний</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ post.created_at|date:"d.m.Y H:i" }}</td>
+                            <td>{{ post.comment_count }}</td>
+                            <td>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ post.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Дії
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ post.id }}">
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'core:post_detail' post.pk %}">
+                                                <i class="fas fa-eye me-2"></i> Переглянути
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'core:post_edit' post.pk %}">
+                                                <i class="fas fa-edit me-2"></i> Редагувати
+                                            </a>
+                                        </li>
+                                        
+                                        {% if post.is_closed %}
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'core:post_reopen' post.pk %}">
+                                                    <i class="fas fa-lock-open me-2"></i> Відкрити
+                                                </a>
+                                            </li>
+                                        {% else %}
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'core:post_close' post.pk %}">
+                                                    <i class="fas fa-lock me-2"></i> Закрити
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                        
+                                        {% if post.is_frozen %}
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'core:post_unfreeze' post.pk %}">
+                                                    <i class="fas fa-sun me-2"></i> Розморозити
+                                                </a>
+                                            </li>
+                                        {% else %}
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'core:post_freeze' post.pk %}">
+                                                    <i class="fas fa-snowflake me-2"></i> Заморозити
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                        
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-danger confirm-action" href="{% url 'core:post_delete' post.pk %}" 
+                                               data-confirm-message="Ви впевнені, що хочете видалити пост '{{ post.title }}'? Ця дія не може бути скасована.">
+                                                <i class="fas fa-trash-alt me-2"></i> Видалити
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center">Постів не знайдено.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.section %}&section={{ request.GET.section }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.section %}&section={{ request.GET.section }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.section %}&section={{ request.GET.section }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{{ num }}</a></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.section %}&section={{ request.GET.section }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.section %}&section={{ request.GET.section }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.section %}&section={{ request.GET.section }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

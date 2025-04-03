@@ -1,0 +1,116 @@
+{% extends 'base.html' %}
+
+{% block title %}Сповіщення - Форум{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Сповіщення</h4>
+        <div>
+            <span class="badge bg-primary rounded-pill" id="unread-count">{{ unread_count }}</span>
+            {% if notifications %}
+                <a href="{% url 'notifications:mark_all_read' %}" class="btn btn-sm btn-outline-primary ms-2">Позначити всі як прочитані</a>
+            {% endif %}
+        </div>
+    </div>
+    <div class="card-body">
+        {% if notifications %}
+            <div class="list-group">
+                {% for notification in notifications %}
+                    <div class="list-group-item notification-item {% if not notification.is_read %}notification-unread{% endif %}">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h5 class="mb-1">
+                                <a href="{{ notification.get_url }}" class="notification-link" data-notification-id="{{ notification.pk }}">
+                                    {{ notification.title }}
+                                </a>
+                            </h5>
+                            <small>{{ notification.created_at|date:"d.m.Y H:i" }}</small>
+                        </div>
+                        <p class="mb-1">{{ notification.message }}</p>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small>
+                                {% if notification.sender %}
+                                    Від: {{ notification.sender.first_name }} {{ notification.sender.last_name }}
+                                {% else %}
+                                    Системне сповіщення
+                                {% endif %}
+                            </small>
+                            <div>
+                                {% if not notification.is_read %}
+                                    <a href="{% url 'notifications:mark_read' notification.pk %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-check"></i> Позначити як прочитане
+                                    </a>
+                                {% endif %}
+                                <a href="{% url 'notifications:delete' notification.pk %}" class="btn btn-sm btn-outline-danger ms-2 confirm-action" data-confirm-message="Ви впевнені, що хочете видалити це сповіщення?">
+                                    <i class="fas fa-trash-alt"></i> Видалити
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Pagination -->
+            {% if is_paginated %}
+                <nav aria-label="Page navigation" class="mt-4">
+                    <ul class="pagination justify-content-center">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1" aria-label="First">
+                                    <span aria-hidden="true">&laquo;&laquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                                    <span aria-hidden="true">&laquo;</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                        
+                        {% for num in page_obj.paginator.page_range %}
+                            {% if page_obj.number == num %}
+                                <li class="page-item active"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next">
+                                    <span aria-hidden="true">&raquo;</span>
+                                </a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Last">
+                                    <span aria-hidden="true">&raquo;&raquo;</span>
+                                </a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        {% else %}
+            <div class="alert alert-info">
+                <p class="mb-0">У вас немає сповіщень.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    $(document).ready(function() {
+        // Mark notification as read when clicked
+        $('.notification-link').click(function() {
+            const notificationId = $(this).data('notification-id');
+            const url = `/notifications/${notificationId}/mark-read/`;
+            
+            $.post(url, function() {
+                // Success callback
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,207 @@
+/* Main Styles for Forum Application */
+
+/* General Styles */
+body {
+    font-family: 'Roboto', sans-serif;
+    color: #333;
+    background-color: #f8f9fa;
+}
+
+/* Card styling */
+.card {
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background-color: #f1f3f5;
+    font-weight: 600;
+}
+
+/* Post styling */
+.post-card {
+    transition: transform 0.2s;
+}
+
+.post-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.post-meta {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.post-content {
+    line-height: 1.6;
+}
+
+/* Comment styling */
+.comment {
+    border-left: 3px solid #dee2e6;
+    padding-left: 15px;
+    margin-bottom: 15px;
+}
+
+.comment-meta {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.comment-replies {
+    margin-left: 30px;
+}
+
+/* Voting buttons */
+.vote-buttons {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.vote-count {
+    font-weight: bold;
+    margin: 5px 0;
+}
+
+.vote-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #6c757d;
+}
+
+.vote-btn:hover {
+    color: #0d6efd;
+}
+
+.vote-btn.active {
+    color: #0d6efd;
+}
+
+/* Tags */
+.tag-badge {
+    background-color: #e9ecef;
+    color: #495057;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    margin-right: 5px;
+    margin-bottom: 5px;
+    display: inline-block;
+}
+
+.tag-badge:hover {
+    background-color: #dee2e6;
+    text-decoration: none;
+}
+
+/* Section styling */
+.section-card {
+    transition: transform 0.2s;
+}
+
+.section-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Sidebar */
+.sidebar-card {
+    margin-bottom: 20px;
+}
+
+/* Admin panel */
+.admin-card {
+    border-left: 4px solid #0d6efd;
+}
+
+.admin-stats {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #0d6efd;
+}
+
+/* Status indicators */
+.status-badge {
+    font-size: 0.8rem;
+    padding: 3px 8px;
+}
+
+.status-closed {
+    background-color: #dc3545;
+}
+
+.status-frozen {
+    background-color: #6c757d;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    .sidebar {
+        margin-top: 20px;
+    }
+    
+    .comment-replies {
+        margin-left: 15px;
+    }
+}
+
+/* Notification styles */
+.notification-unread {
+    background-color: #e8f4ff;
+}
+
+.notification-item {
+    border-left: 3px solid transparent;
+    padding: 10px 15px;
+    margin-bottom: 10px;
+}
+
+.notification-unread {
+    border-left-color: #0d6efd;
+}
+
+/* Form styling */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-control:focus {
+    border-color: #0d6efd;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Ukrainian language specific styles */
+.uk-text {
+    line-height: 1.6;
+}
+
+/* Post type badges */
+.post-type-badge {
+    font-size: 0.8rem;
+    padding: 3px 8px;
+    margin-right: 5px;
+}
+
+.post-type-announcement {
+    background-color: #dc3545;
+}
+
+.post-type-question {
+    background-color: #0d6efd;
+}
+
+.post-type-suggestion {
+    background-color: #198754;
+}
+
+.post-type-message {
+    background-color: #6c757d;
+}
+
+.post-type-feedback {
+    background-color: #fd7e14;
+}

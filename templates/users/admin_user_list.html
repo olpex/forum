@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block title %}Керування користувачами - Панель адміністратора - Форум{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">Керування користувачами</h4>
+        <a href="{% url 'users:admin_user_create' %}" class="btn btn-primary">
+            <i class="fas fa-user-plus me-2"></i> Створити користувача
+        </a>
+    </div>
+    <div class="card-body">
+        <!-- Search and filters -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <form method="get" class="d-flex">
+                    <input type="text" name="q" class="form-control me-2" placeholder="Пошук користувачів..." value="{{ request.GET.q }}">
+                    <button type="submit" class="btn btn-outline-primary">Пошук</button>
+                </form>
+            </div>
+            <div class="col-md-4">
+                <form method="get" class="d-flex">
+                    <select name="role" class="form-select me-2" onchange="this.form.submit()">
+                        <option value="">Всі ролі</option>
+                        <option value="superadmin" {% if request.GET.role == 'superadmin' %}selected{% endif %}>Суперадміністратори</option>
+                        <option value="admin" {% if request.GET.role == 'admin' %}selected{% endif %}>Адміністратори</option>
+                        <option value="student" {% if request.GET.role == 'student' %}selected{% endif %}>Студенти</option>
+                    </select>
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">Всі статуси</option>
+                        <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Активні</option>
+                        <option value="banned" {% if request.GET.status == 'banned' %}selected{% endif %}>Заблоковані</option>
+                        <option value="frozen" {% if request.GET.status == 'frozen' %}selected{% endif %}>Заморожені</option>
+                    </select>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Users table -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Ім'я</th>
+                        <th>Email</th>
+                        <th>Роль</th>
+                        <th>Статус</th>
+                        <th>Дата реєстрації</th>
+                        <th>Дії</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user in users %}
+                        <tr>
+                            <td>{{ user.id }}</td>
+                            <td>
+                                <a href="{% url 'users:admin_user_detail' user.pk %}">
+                                    {{ user.first_name }} {{ user.last_name }}
+                                </a>
+                            </td>
+                            <td>{{ user.email }}</td>
+                            <td>
+                                {% if user.is_superadmin %}
+                                    <span class="badge bg-danger">Суперадміністратор</span>
+                                {% elif user.is_admin %}
+                                    <span class="badge bg-warning text-dark">Адміністратор</span>
+                                {% else %}
+                                    <span class="badge bg-info text-dark">Студент</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if user.is_banned %}
+                                    <span class="badge bg-danger">Заблокований</span>
+                                    {% if user.ban_until %}
+                                        до {{ user.ban_until|date:"d.m.Y" }}
+                                    {% endif %}
+                                {% elif user.is_frozen %}
+                                    <span class="badge bg-secondary">Заморожений</span>
+                                {% else %}
+                                    <span class="badge bg-success">Активний</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ user.date_joined|date:"d.m.Y" }}</td>
+                            <td>
+                                <div class="dropdown">
+                                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ user.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                        Дії
+                                    </button>
+                                    <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ user.id }}">
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'users:admin_user_detail' user.pk %}">
+                                                <i class="fas fa-eye me-2"></i> Переглянути
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="{% url 'users:admin_user_edit' user.pk %}">
+                                                <i class="fas fa-edit me-2"></i> Редагувати
+                                            </a>
+                                        </li>
+                                        {% if not user.is_superadmin or request.user.is_superadmin %}
+                                            {% if user.is_banned %}
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'users:admin_user_unban' user.pk %}">
+                                                        <i class="fas fa-unlock me-2"></i> Розблокувати
+                                                    </a>
+                                                </li>
+                                            {% else %}
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'users:admin_user_ban' user.pk %}">
+                                                        <i class="fas fa-ban me-2"></i> Заблокувати
+                                                    </a>
+                                                </li>
+                                            {% endif %}
+                                            
+                                            {% if user.is_frozen %}
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'users:admin_user_unfreeze' user.pk %}">
+                                                        <i class="fas fa-sun me-2"></i> Розморозити
+                                                    </a>
+                                                </li>
+                                            {% else %}
+                                                <li>
+                                                    <a class="dropdown-item" href="{% url 'users:admin_user_freeze' user.pk %}">
+                                                        <i class="fas fa-snowflake me-2"></i> Заморозити
+                                                    </a>
+                                                </li>
+                                            {% endif %}
+                                            
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item text-danger confirm-action" href="{% url 'users:admin_user_delete' user.pk %}" 
+                                                   data-confirm-message="Ви впевнені, що хочете видалити користувача {{ user.first_name }} {{ user.last_name }}? Ця дія не може бути скасована.">
+                                                    <i class="fas fa-trash-alt me-2"></i> Видалити
+                                                </a>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">Користувачів не знайдено.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <nav aria-label="Page navigation" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="First">
+                                <span aria-hidden="true">&laquo;&laquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Previous">
+                                <span aria-hidden="true">&laquo;</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{{ num }}</a></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Next">
+                                <span aria-hidden="true">&raquo;</span>
+                            </a>
+                        </li>
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}" aria-label="Last">
+                                <span aria-hidden="true">&raquo;&raquo;</span>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

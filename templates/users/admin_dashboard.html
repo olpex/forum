@@ -1,0 +1,171 @@
+{% extends 'base.html' %}
+
+{% block title %}Панель адміністратора - Форум{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Панель адміністратора</h4>
+            </div>
+            <div class="card-body">
+                <p>Ласкаво просимо до панелі адміністратора форуму. Тут ви можете керувати користувачами, розділами, постами та коментарями.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Stats Cards -->
+    <div class="col-md-3 mb-4">
+        <div class="card admin-card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-users fa-3x mb-3 text-primary"></i>
+                <h5 class="card-title">Користувачі</h5>
+                <p class="admin-stats">{{ user_count }}</p>
+                <p class="text-muted">Зареєстрованих користувачів</p>
+                <a href="{% url 'users:admin_user_list' %}" class="btn btn-sm btn-outline-primary">Керувати</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card admin-card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-folder fa-3x mb-3 text-success"></i>
+                <h5 class="card-title">Розділи</h5>
+                <p class="admin-stats">{{ section_count }}</p>
+                <p class="text-muted">Активних розділів</p>
+                <a href="{% url 'users:admin_section_list' %}" class="btn btn-sm btn-outline-success">Керувати</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card admin-card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-file-alt fa-3x mb-3 text-info"></i>
+                <h5 class="card-title">Пости</h5>
+                <p class="admin-stats">{{ post_count }}</p>
+                <p class="text-muted">Опублікованих постів</p>
+                <a href="{% url 'users:admin_post_list' %}" class="btn btn-sm btn-outline-info">Керувати</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-4">
+        <div class="card admin-card h-100">
+            <div class="card-body text-center">
+                <i class="fas fa-comments fa-3x mb-3 text-warning"></i>
+                <h5 class="card-title">Коментарі</h5>
+                <p class="admin-stats">{{ comment_count }}</p>
+                <p class="text-muted">Опублікованих коментарів</p>
+                <a href="{% url 'users:admin_comment_list' %}" class="btn btn-sm btn-outline-warning">Керувати</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Activity -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Останні дії</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for action in recent_actions %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ action.get_action_display }}</h6>
+                                <small>{{ action.created_at|date:"d.m.Y H:i" }}</small>
+                            </div>
+                            <p class="mb-1">{{ action.description }}</p>
+                            <small>
+                                Користувач: {{ action.user.first_name }} {{ action.user.last_name }}
+                                {% if action.target_user %}
+                                    | Цільовий користувач: {{ action.target_user.first_name }} {{ action.target_user.last_name }}
+                                {% endif %}
+                            </small>
+                        </div>
+                    {% empty %}
+                        <p class="text-center">Немає останніх дій.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- New Users -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Нові користувачі</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for user in new_users %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ user.first_name }} {{ user.last_name }}</h6>
+                                <small>{{ user.date_joined|date:"d.m.Y H:i" }}</small>
+                            </div>
+                            <p class="mb-1">{{ user.email }}</p>
+                            <small>
+                                {% if user.is_superadmin %}
+                                    <span class="badge bg-danger">Суперадміністратор</span>
+                                {% elif user.is_admin %}
+                                    <span class="badge bg-warning text-dark">Адміністратор</span>
+                                {% else %}
+                                    <span class="badge bg-info text-dark">Користувач</span>
+                                {% endif %}
+                                
+                                {% if user.is_banned %}
+                                    <span class="badge bg-danger">Заблокований</span>
+                                {% endif %}
+                                
+                                {% if user.is_frozen %}
+                                    <span class="badge bg-secondary">Заморожений</span>
+                                {% endif %}
+                            </small>
+                        </div>
+                    {% empty %}
+                        <p class="text-center">Немає нових користувачів.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Quick Actions -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Швидкі дії</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'users:admin_user_create' %}" class="btn btn-primary d-block">
+                            <i class="fas fa-user-plus me-2"></i> Створити користувача
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'users:admin_section_create' %}" class="btn btn-success d-block">
+                            <i class="fas fa-folder-plus me-2"></i> Створити розділ
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{% url 'core:post_create' %}" class="btn btn-info d-block text-white">
+                            <i class="fas fa-file-medical me-2"></i> Створити пост
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="/admin/" class="btn btn-secondary d-block">
+                            <i class="fas fa-cogs me-2"></i> Django Адмін
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

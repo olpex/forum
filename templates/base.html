@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Форум{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="/static/css/style.css">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{% url 'core:home' %}">Форум</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'core:home' %}">Головна</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'core:section_list' %}">Розділи</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'core:tag_list' %}">Теги</a>
+                    </li>
+                </ul>
+                
+                <!-- Search Form -->
+                <form class="d-flex me-2" action="{% url 'core:search' %}" method="get">
+                    <input class="form-control me-2" type="search" name="q" placeholder="Пошук..." aria-label="Search">
+                    <button class="btn btn-outline-light" type="submit">Пошук</button>
+                </form>
+                
+                <!-- User Menu -->
+                <ul class="navbar-nav">
+                    {% if user.is_authenticated %}
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                {{ user.first_name }} {{ user.last_name }}
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+                                <li><a class="dropdown-item" href="{% url 'users:profile' %}">Мій профіль</a></li>
+                                <li><a class="dropdown-item" href="{% url 'notifications:notification_list' %}">
+                                    Сповіщення 
+                                    <span class="badge bg-danger rounded-pill" id="notification-count"></span>
+                                </a></li>
+                                {% if user.is_superadmin or user.is_admin %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="{% url 'users:admin_panel' %}">Панель адміністратора</a></li>
+                                {% endif %}
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'users:logout' %}">Вийти</a></li>
+                            </ul>
+                        </li>
+                    {% else %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'users:login' %}">Увійти</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{% url 'users:signup' %}">Зареєструватися</a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Messages -->
+            {% if messages %}
+                <div class="col-12 mb-4">
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            <!-- Content -->
+            <div class="col-md-9">
+                {% block content %}{% endblock %}
+            </div>
+            
+            <!-- Sidebar -->
+            <div class="col-md-3">
+                {% block sidebar %}
+                    <!-- Recent Posts -->
+                    <div class="card mb-4">
+                        <div class="card-header">Останні пости</div>
+                        <div class="card-body">
+                            <ul class="list-unstyled">
+                                {% for post in recent_posts|slice:":5" %}
+                                    <li class="mb-2">
+                                        <a href="{% url 'core:post_detail' post.pk %}">{{ post.title }}</a>
+                                        <small class="text-muted d-block">{{ post.created_at|date:"d.m.Y" }}</small>
+                                    </li>
+                                {% empty %}
+                                    <li>Немає постів</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Popular Tags -->
+                    <div class="card mb-4">
+                        <div class="card-header">Популярні теги</div>
+                        <div class="card-body">
+                            <div class="d-flex flex-wrap gap-1">
+                                {% for tag in popular_tags|slice:":10" %}
+                                    <a href="{% url 'core:tag_posts' tag.name %}" class="badge bg-secondary text-decoration-none">
+                                        {{ tag.name }}
+                                    </a>
+                                {% empty %}
+                                    <p>Немає тегів</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Archive -->
+                    <div class="card">
+                        <div class="card-header">Архів</div>
+                        <div class="card-body">
+                            <ul class="list-unstyled">
+                                {% for date in archive_dates|slice:":6" %}
+                                    <li class="mb-2">
+                                        <a href="{% url 'core:archive_month' date.year date.month %}">
+                                            {{ date|date:"F Y" }}
+                                        </a>
+                                    </li>
+                                {% empty %}
+                                    <li>Немає записів</li>
+                                {% endfor %}
+                            </ul>
+                            <a href="{% url 'core:archive' %}" class="btn btn-sm btn-outline-primary">Всі архіви</a>
+                        </div>
+                    </div>
+                {% endblock %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-5">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Форум</h5>
+                    <p>Платформа для обговорення та обміну думками.</p>
+                </div>
+                <div class="col-md-3">
+                    <h5>Посилання</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="{% url 'core:home' %}" class="text-white">Головна</a></li>
+                        <li><a href="{% url 'core:section_list' %}" class="text-white">Розділи</a></li>
+                        <li><a href="{% url 'core:tag_list' %}" class="text-white">Теги</a></li>
+                    </ul>
+                </div>
+                <div class="col-md-3">
+                    <h5>Контакти</h5>
+                    <ul class="list-unstyled">
+                        <li><a href="mailto:olppara@gmail.com" class="text-white">olppara@gmail.com</a></li>
+                    </ul>
+                </div>
+            </div>
+            <hr>
+            <div class="text-center">
+                <p>&copy; {% now "Y" %} Форум. Всі права захищені.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="/static/js/main.js"></script>
+    
+    <!-- Notification Count -->
+    {% if user.is_authenticated %}
+        <script>
+            // Function to update notification count
+            function updateNotificationCount() {
+                $.get("{% url 'notifications:notification_list' %}", function(data) {
+                    const count = $(data).find('#unread-count').text();
+                    if (count && count !== '0') {
+                        $('#notification-count').text(count);
+                    } else {
+                        $('#notification-count').text('');
+                    }
+                });
+            }
+            
+            // Update notification count on page load
+            $(document).ready(function() {
+                updateNotificationCount();
+                // Update every 60 seconds
+                setInterval(updateNotificationCount, 60000);
+            });
+        </script>
+    {% endif %}
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

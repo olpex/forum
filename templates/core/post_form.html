@@ -1,0 +1,216 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if form.instance.pk %}Редагувати{% else %}Створити{% endif %} пост - Форум{% endblock %}
+
+{% block extra_css %}
+    {{ form.media.css }}
+{% endblock %}
+
+{% block content %}
+    <!-- Breadcrumbs -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Головна</a></li>
+            {% if form.instance.pk %}
+                <li class="breadcrumb-item"><a href="{% url 'core:section_detail' form.instance.section.pk %}">{{ form.instance.section.title }}</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'core:post_detail' form.instance.pk %}">{{ form.instance.title }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Редагувати</li>
+            {% else %}
+                <li class="breadcrumb-item active" aria-current="page">Створити пост</li>
+            {% endif %}
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">{% if form.instance.pk %}Редагувати{% else %}Створити{% endif %} пост</h4>
+        </div>
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <!-- Title field -->
+                <div class="form-group mb-3">
+                    <label for="{{ form.title.id_for_label }}" class="form-label">{{ form.title.label }}</label>
+                    {{ form.title }}
+                    {% if form.title.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.title.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    {% if form.title.help_text %}
+                        <small class="form-text text-muted">{{ form.title.help_text }}</small>
+                    {% endif %}
+                </div>
+                
+                <!-- Section field -->
+                <div class="form-group mb-3">
+                    <label for="{{ form.section.id_for_label }}" class="form-label">{{ form.section.label }}</label>
+                    {{ form.section }}
+                    {% if form.section.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.section.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    {% if form.section.help_text %}
+                        <small class="form-text text-muted">{{ form.section.help_text }}</small>
+                    {% endif %}
+                </div>
+                
+                <!-- Post type field -->
+                {% if form.post_type %}
+                    <div class="form-group mb-3">
+                        <label for="{{ form.post_type.id_for_label }}" class="form-label">{{ form.post_type.label }}</label>
+                        {{ form.post_type }}
+                        {% if form.post_type.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.post_type.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if form.post_type.help_text %}
+                            <small class="form-text text-muted">{{ form.post_type.help_text }}</small>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                
+                <!-- Content field -->
+                <div class="form-group mb-3">
+                    <label for="{{ form.content.id_for_label }}" class="form-label">{{ form.content.label }}</label>
+                    {{ form.content }}
+                    {% if form.content.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.content.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    {% if form.content.help_text %}
+                        <small class="form-text text-muted">{{ form.content.help_text }}</small>
+                    {% endif %}
+                </div>
+                
+                <!-- Tags field -->
+                <div class="form-group mb-3">
+                    <label for="{{ form.tags.id_for_label }}" class="form-label">{{ form.tags.label }}</label>
+                    {{ form.tags }}
+                    {% if form.tags.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.tags.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    {% if form.tags.help_text %}
+                        <small class="form-text text-muted">{{ form.tags.help_text }}</small>
+                    {% endif %}
+                </div>
+                
+                <!-- New tags checkbox and field -->
+                <div class="form-group mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="show-new-tags">
+                        <label class="form-check-label" for="show-new-tags">
+                            Додати нові теги
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group mb-3 new-tags-field d-none">
+                    <label for="{{ form.new_tags.id_for_label }}" class="form-label">{{ form.new_tags.label }}</label>
+                    {{ form.new_tags }}
+                    {% if form.new_tags.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.new_tags.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    {% if form.new_tags.help_text %}
+                        <small class="form-text text-muted">{{ form.new_tags.help_text }}</small>
+                    {% endif %}
+                </div>
+                
+                <!-- Attachments field -->
+                {% if form.attachments %}
+                    <div class="form-group mb-3">
+                        <label for="{{ form.attachments.id_for_label }}" class="form-label">{{ form.attachments.label }}</label>
+                        {{ form.attachments }}
+                        {% if form.attachments.errors %}
+                            <div class="invalid-feedback d-block">
+                                {% for error in form.attachments.errors %}
+                                    {{ error }}
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                        {% if form.attachments.help_text %}
+                            <small class="form-text text-muted">{{ form.attachments.help_text }}</small>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                
+                <!-- Current attachments (for edit) -->
+                {% if form.instance.pk and form.instance.attachments.exists %}
+                    <div class="form-group mb-3">
+                        <label class="form-label">Поточні вкладення</label>
+                        <div class="list-group">
+                            {% for attachment in form.instance.attachments.all %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <a href="{{ attachment.file.url }}" target="_blank">{{ attachment.filename }}</a>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="delete_attachment_{{ attachment.pk }}" id="delete_attachment_{{ attachment.pk }}">
+                                        <label class="form-check-label" for="delete_attachment_{{ attachment.pk }}">
+                                            Видалити
+                                        </label>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+                
+                <!-- Submit buttons -->
+                <div class="d-flex justify-content-between mt-4">
+                    <a href="{% if form.instance.pk %}{% url 'core:post_detail' form.instance.pk %}{% else %}{% url 'core:home' %}{% endif %}" class="btn btn-secondary">Скасувати</a>
+                    <button type="submit" class="btn btn-primary">{% if form.instance.pk %}Зберегти зміни{% else %}Створити пост{% endif %}</button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+    {{ form.media.js }}
+    <script>
+        $(document).ready(function() {
+            // Initialize select2 for tags
+            $('#id_tags').select2({
+                placeholder: 'Виберіть теги',
+                allowClear: true,
+                width: '100%'
+            });
+            
+            // Show/hide new tags field
+            $('#show-new-tags').change(function() {
+                if ($(this).is(':checked')) {
+                    $('.new-tags-field').removeClass('d-none');
+                } else {
+                    $('.new-tags-field').addClass('d-none');
+                }
+            });
+        });
+    </script>
+{% endblock %}

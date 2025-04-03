@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+
+{% block title %}Панель адміністратора - Форум{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Панель адміністратора</h4>
+            </div>
+            <div class="card-body">
+                <p>Ласкаво просимо до панелі адміністратора форуму. Тут ви можете керувати користувачами, розділами, постами та коментарями.</p>
+                
+                <div class="row mt-4">
+                    <div class="col-md-3 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-users fa-3x mb-3 text-primary"></i>
+                                <h5 class="card-title">Користувачі</h5>
+                                <a href="{% url 'users:admin_user_list' %}" class="btn btn-primary mt-2">Керувати</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-folder fa-3x mb-3 text-success"></i>
+                                <h5 class="card-title">Розділи</h5>
+                                <a href="{% url 'users:admin_section_list' %}" class="btn btn-success mt-2">Керувати</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-file-alt fa-3x mb-3 text-info"></i>
+                                <h5 class="card-title">Пости</h5>
+                                <a href="{% url 'users:admin_post_list' %}" class="btn btn-info mt-2 text-white">Керувати</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-3 mb-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="fas fa-comments fa-3x mb-3 text-warning"></i>
+                                <h5 class="card-title">Коментарі</h5>
+                                <a href="{% url 'users:admin_comment_list' %}" class="btn btn-warning mt-2">Керувати</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
