@@ -43,7 +43,6 @@ INSTALLED_APPS = [
     "crispy_bootstrap5",
     "ckeditor",
     "django_filters",
-    "whitenoise",  # Added for static files
     
     # Local apps
     "users",
