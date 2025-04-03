@@ -119,6 +119,30 @@ def post_edit(request, pk):
     return render(request, 'core/post_form.html', {'form': form, 'post': post})
 
 @login_required
+def post_delete(request, pk):
+    """Delete a post"""
+    post = get_object_or_404(Post, pk=pk)
+    
+    # Check if user is authorized to delete
+    if post.author != request.user and not request.user.is_superadmin() and not (request.user.is_admin() and post.section.created_by == request.user):
+        messages.error(request, _('Ви не маєте прав на видалення цього посту.'))
+        return redirect('core:post_detail', pk=post.pk)
+    
+    section = post.section
+    post.delete()
+    
+    # Log the action
+    ActionLog.objects.create(
+        user=request.user,
+        action=ActionLog.ACTION_DELETE,
+        content_type=ActionLog.CONTENT_POST,
+        content_id=pk
+    )
+    
+    messages.success(request, _('Пост успішно видалено!'))
+    return redirect('core:section_detail', pk=section.pk)
+
+@login_required
 def post_close(request, pk):
     """Close a post to prevent new comments"""
     post = get_object_or_404(Post, pk=pk)
@@ -189,6 +213,33 @@ def post_freeze(request, pk):
     )
     
     messages.success(request, _('Пост успішно заморожено!'))
+    return redirect('core:post_detail', pk=post.pk)
+
+@login_required
+def post_unfreeze(request, pk):
+    """Unfreeze a post to allow editing and new comments"""
+    post = get_object_or_404(Post, pk=pk)
+    
+    # Check if user is authorized to unfreeze
+    if not request.user.is_superadmin() and not (request.user.is_admin() and post.section.created_by == request.user):
+        messages.error(request, _('Ви не маєте прав на розморозку цього посту.'))
+        return redirect('core:post_detail', pk=post.pk)
+    
+    if not post.is_frozen:
+        messages.info(request, _('Цей пост не заморожено.'))
+        return redirect('core:post_detail', pk=post.pk)
+    
+    post.unfreeze()
+    
+    # Log the action
+    ActionLog.objects.create(
+        user=request.user,
+        action=ActionLog.ACTION_UNFREEZE,
+        content_type=ActionLog.CONTENT_POST,
+        content_id=post.id
+    )
+    
+    messages.success(request, _('Пост успішно розморожено!'))
     return redirect('core:post_detail', pk=post.pk)
 
 @login_required
@@ -271,6 +322,126 @@ def comment_reply(request, pk):
         'post': post,
         'parent_comment': parent_comment,
     })
+
+@login_required
+def comment_edit(request, pk):
+    """Edit a comment"""
+    comment = get_object_or_404(Comment, pk=pk)
+    post = comment.post
+    
+    # Check if user is authorized to edit
+    if comment.author != request.user and not request.user.is_superadmin():
+        messages.error(request, _('Ви не маєте прав на редагування цього коментаря.'))
+        return redirect('core:post_detail', pk=post.pk)
+    
+    if comment.is_frozen:
+        messages.error(request, _('Цей коментар заморожено і не може бути відредаговано.'))
+        return redirect('core:post_detail', pk=post.pk)
+    
+    if request.method == 'POST':
+        form = CommentForm(request.POST, instance=comment)
+        if form.is_valid():
+            form.save()
+            
+            # Log the action
+            ActionLog.objects.create(
+                user=request.user,
+                action=ActionLog.ACTION_UPDATE,
+                content_type=ActionLog.CONTENT_COMMENT,
+                content_id=comment.id
+            )
+            
+            messages.success(request, _('Коментар успішно оновлено!'))
+            return redirect('core:post_detail', pk=post.pk)
+    else:
+        form = CommentForm(instance=comment)
+    
+    return render(request, 'core/comment_form.html', {
+        'form': form,
+        'post': post,
+        'comment': comment,
+        'is_edit': True
+    })
+
+@login_required
+def comment_delete(request, pk):
+    """Delete a comment"""
+    comment = get_object_or_404(Comment, pk=pk)
+    post = comment.post
+    
+    # Check if user is authorized to delete
+    if comment.author != request.user and not request.user.is_superadmin():
+        messages.error(request, _('Ви не маєте прав на видалення цього коментаря.'))
+        return redirect('core:post_detail', pk=post.pk)
+    
+    comment.delete()
+    
+    # Log the action
+    ActionLog.objects.create(
+        user=request.user,
+        action=ActionLog.ACTION_DELETE,
+        content_type=ActionLog.CONTENT_COMMENT,
+        content_id=pk
+    )
+    
+    messages.success(request, _('Коментар успішно видалено!'))
+    return redirect('core:post_detail', pk=post.pk)
+
+@login_required
+def comment_freeze(request, pk):
+    """Freeze a comment to prevent editing"""
+    comment = get_object_or_404(Comment, pk=pk)
+    post = comment.post
+    
+    # Check if user is authorized to freeze
+    if not request.user.is_superadmin() and not (request.user.is_admin() and post.section.created_by == request.user):
+        messages.error(request, _('Ви не маєте прав на заморозку цього коментаря.'))
+        return redirect('core:post_detail', pk=post.pk)
+    
+    if comment.is_frozen:
+        messages.info(request, _('Цей коментар вже заморожено.'))
+        return redirect('core:post_detail', pk=post.pk)
+    
+    comment.freeze()
+    
+    # Log the action
+    ActionLog.objects.create(
+        user=request.user,
+        action=ActionLog.ACTION_FREEZE,
+        content_type=ActionLog.CONTENT_COMMENT,
+        content_id=comment.id
+    )
+    
+    messages.success(request, _('Коментар успішно заморожено!'))
+    return redirect('core:post_detail', pk=post.pk)
+
+@login_required
+def comment_unfreeze(request, pk):
+    """Unfreeze a comment to allow editing"""
+    comment = get_object_or_404(Comment, pk=pk)
+    post = comment.post
+    
+    # Check if user is authorized to unfreeze
+    if not request.user.is_superadmin() and not (request.user.is_admin() and post.section.created_by == request.user):
+        messages.error(request, _('Ви не маєте прав на розморозку цього коментаря.'))
+        return redirect('core:post_detail', pk=post.pk)
+    
+    if not comment.is_frozen:
+        messages.info(request, _('Цей коментар не заморожено.'))
+        return redirect('core:post_detail', pk=post.pk)
+    
+    comment.unfreeze()
+    
+    # Log the action
+    ActionLog.objects.create(
+        user=request.user,
+        action=ActionLog.ACTION_UNFREEZE,
+        content_type=ActionLog.CONTENT_COMMENT,
+        content_id=comment.id
+    )
+    
+    messages.success(request, _('Коментар успішно розморожено!'))
+    return redirect('core:post_detail', pk=post.pk)
 
 def tag_list(request):
     """List all tags"""
