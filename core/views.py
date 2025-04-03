@@ -165,6 +165,33 @@ def post_reopen(request, pk):
     return redirect('core:post_detail', pk=post.pk)
 
 @login_required
+def post_freeze(request, pk):
+    """Freeze a post to prevent editing and new comments"""
+    post = get_object_or_404(Post, pk=pk)
+    
+    # Check if user is authorized to freeze
+    if not request.user.is_superadmin() and not (request.user.is_admin() and post.section.created_by == request.user):
+        messages.error(request, _('Ви не маєте прав на заморозку цього посту.'))
+        return redirect('core:post_detail', pk=post.pk)
+    
+    if post.is_frozen:
+        messages.info(request, _('Цей пост вже заморожено.'))
+        return redirect('core:post_detail', pk=post.pk)
+    
+    post.freeze()
+    
+    # Log the action
+    ActionLog.objects.create(
+        user=request.user,
+        action=ActionLog.ACTION_FREEZE,
+        content_type=ActionLog.CONTENT_POST,
+        content_id=post.id
+    )
+    
+    messages.success(request, _('Пост успішно заморожено!'))
+    return redirect('core:post_detail', pk=post.pk)
+
+@login_required
 def comment_create(request, post_pk):
     """Create a new comment on a post"""
     post = get_object_or_404(Post, pk=post_pk)
